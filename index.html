@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #map {
+            width: 800px;
+            height: 600px;
+            background: #cccccc;
+            position: relative;
+            top: 0px;
+            left: 0px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <script src="./line.js"></script>
+
+    <script>
+        /*需求：键盘上下左右移动事件
+        
+        思路分析 ：
+            1.获取元素
+                1.1 地图
+                1.2 食物
+                    width:
+                    height:
+                    left:
+                    top:
+                    bgc :
+                1.3 蛇
+            2.window.onkeydown (键盘按下)
+            3.事件处理函数
+                3.1 蛇移动
+                3.2 边界检测
+                3.3 吃食物
+                3.4 刷新食物
+        */
+
+
+        //1.获取元素
+        //1.1 地图
+        var map = document.getElementById('map');
+        //1.2 食物
+
+        //构造函数创建事物对象
+        function Food(width, height, left, top, bgc) {
+            //逻辑或短路运算实现函数默认参数
+            this.width = width || 20;
+            this.height = height || 20;
+            this.left = left || 0;
+            this.top = top || 0;
+            this.bgc = bgc || getRandomColor();
+        };
+
+        //给原型添加render ： 渲染（显示）到页面（DOM树）
+        Food.prototype.render = function (map) {
+            //this : 调用这个方法的每一个事物对象
+
+            //1.内存创建空标签
+            var div = document.createElement('div');
+            //2.设置样式属性
+            div.style.width = this.width + 'px';
+            div.style.height = this.height + 'px';
+            div.style.position = 'absolute';
+            //随机位置
+            //a. 求格子数量
+            var geziX = map.offsetWidth / this.width;// 800 / 20 = 40
+            var geziY = map.offsetHeight / this.height;
+            //b. 求随机格子
+            var x = Math.floor(Math.random() * geziX);
+            var y = Math.floor(Math.random() * geziY);
+            console.log(x);
+            //c .设置位置
+            div.style.left = (this.left || x * this.width) + 'px';
+            div.style.top = (this.top || y * this.height) + 'px';
+            div.style.backgroundColor = this.bgc;
+            //3.添加到页面DOM数
+            map.appendChild(div);
+            this.ele = div;//使用属性存储div，用于刷新移除
+        };
+
+        //创建新食物
+        var food = new Food();
+        console.log(food);
+        //渲染到页面
+        food.render(map);
+
+        /* 
+        刷新事物 ：
+            1.dom树移除旧事物
+            2.创建新事物并显示
+        */
+        // //移除旧事物
+        // map.removeChild(food.ele);
+        // //创建新食物
+        // food =  new Food();
+        // food.render(map);
+
+        //1.3 蛇
+
+        //构造函数
+        function Snake(width, height, direction) {
+            this.width = width || 20;//每一节身体的宽度
+            this.height = height || 20;//每一节身体的高度
+            this.direction = direction || 'right';//蛇头默认方向
+            this.body = [
+                { x: 3, y: 2, bgc: 'red' },
+                { x: 2, y: 2, bgc: getRandomColor() },
+                { x: 1, y: 2, bgc: getRandomColor() }
+            ];
+        };
+
+
+        //(1)render :显示到页面
+        Snake.prototype.render = function (map) {
+            //this : 调用这个函数的蛇对象
+
+            //给snake添加bodyElements数组来存储 每一节身体：用于移除刷新
+            this.bodyElements = [];
+
+            for (var i = 0; i < this.body.length; i++) {
+                var section = this.body[i];
+
+                //1.内存创建空元素
+                var div = document.createElement('div');
+                //2.设置样式
+                div.style.width = this.width + 'px';
+                div.style.height = this.height + 'px';
+                div.style.position = 'absolute';
+                div.style.left = section.x * this.width + 'px';
+                div.style.top = section.y * this.height + 'px';
+                div.style.backgroundColor = section.bgc;
+                //3.添加到页面
+                map.appendChild(div);
+                //添加到数组
+                this.bodyElements.push(div);
+            };
+        };
+
+        //2. move : 蛇移动
+        Snake.prototype.move = function (map) {
+            // this : 调用这个方法的蛇对象
+
+            //1.倒着遍历身体，每一节都是前一节位置
+            for (var i = this.body.length - 1; i > 0; i--) {// i > 0,蛇头不遍历
+                console.log(this.body[i]);
+                this.body[i].x = this.body[i - 1].x;
+                this.body[i].y = this.body[i - 1].y;
+            };
+            //2.蛇头位置取决于移动方向
+            switch (this.direction) {
+                case 'left':
+                    this.body[0].x--;
+                    break;
+                case 'top':
+                    this.body[0].y--;
+                    break;
+                case 'right':
+                    this.body[0].x++
+                    break;
+                case 'bottom':
+                    this.body[0].y++;
+                    break;
+            };
+            //3.移除旧蛇
+            this.remove();
+            //4.显示新蛇
+            this.render(map);
+
+            console.log(this.body);
+            
+        };
+        //3. remove:移除蛇
+        Snake.prototype.remove = function(){
+            //this : 调用这个方法的蛇对象
+            //移除蛇的bodyElements中的每一个div
+            for(var i = 0;i<this.bodyElements.length;i++){
+                this.bodyElements[i].parentNode.removeChild( this.bodyElements[i]);
+            };
+        };
+
+        //4. eat: 蛇吃食物
+        Snake.prototype.eat = function (map, food) {
+            // this : 调用这个方法的蛇对象
+
+            //1.记录当前蛇尾巴位置
+            var lastX = this.body[this.body.length-1].x;
+            var lastY = this.body[this.body.length-1].y;
+            //2.食物添加到body最后面
+            this.body.push({
+                x:lastX,
+                y:lastY,
+                bgc:food.bgc
+            });
+            //3.移除旧蛇
+            this.remove();
+            //4.显示新蛇
+            this.render(map);
+        };
+
+        var snake = new Snake();
+        console.log(snake);
+        snake.render(map);
+
+        //2.window.onkeydown (键盘按下)
+        window.onkeydown = function (e) {
+            //逻辑或实现浏览器兼容性 
+            var code = e.keyCode || e.which || e.charCode;//ASCII码
+            console.log(code);
+            //通过按键设置蛇头的方向
+            switch (code) {//细节： 蛇不能掉头
+                case 37:
+                    if(snake.direction != 'right'){
+                        snake.direction = 'left';
+                    };
+                    break;
+                case 38:
+                    if(snake.direction != 'bottom'){
+                        snake.direction = 'top';
+                    }
+                    
+                    break;
+                case 39:
+                    if(snake.direction != 'left'){
+                        snake.direction = 'right';
+                    }   
+                   
+                    break;
+                case 40:
+                    if(snake.direction != 'top'){
+                        snake.direction = 'bottom';
+                    }
+                    break;
+                default:
+                    return;
+                    break;
+            };
+
+            console.log('开始事件处理');
+            //3.事件处理函数
+            //3.1 蛇移动
+            snake.move(map);
+            //3.2 边界检测
+            if(snake.body[0].x < 0 || snake.body[0].x > map.offsetWidth/snake.width-1){
+                alert('Game Over');
+                window.location.reload();
+            };
+
+            if(snake.body[0].y < 0 || snake.body[0].y > map.offsetHeight/snake.height-1){
+                alert('Game Over');
+                window.location.reload();
+            };
+
+            //3.3 吃食物
+            //蛇头位置和食物位置重叠：吃到食物
+            if(snake.body[0].x*snake.width == food.ele.offsetLeft && snake.body[0].y*snake.height == food.ele.offsetTop){
+                // alert('吃到食物');
+                snake.eat(map, food);
+
+                //3.4 刷新食物
+                map.removeChild(food.ele);
+                food = new Food();
+                food.render(map);
+            };
+            
+
+        };
+
+
+
+
+
+        function getRandomColor() {
+            var r = Math.floor(Math.random() * 256);
+            var g = Math.floor(Math.random() * 256);
+            var b = Math.floor(Math.random() * 256);
+
+            return 'rgb(' + r + ',' + g + ',' + b + ')';
+        }
+
+    </script>
+</body>
+
+</html>
